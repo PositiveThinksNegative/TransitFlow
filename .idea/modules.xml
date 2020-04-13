@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/Transit Flow Application.iml" filepath="$PROJECT_DIR$/Transit Flow Application.iml" group="Transit Flow Application" />
       <module fileurl="file://$PROJECT_DIR$/.idea/TransitFlow.iml" filepath="$PROJECT_DIR$/.idea/TransitFlow.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" group="Transit Flow Application/app" />
     </modules>
   </component>
 </project>
