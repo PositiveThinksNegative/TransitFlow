@@ -4,30 +4,38 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 
-class MainViewModel(application: Application): AndroidViewModel(application) {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val readyLiveData: MutableLiveData<Boolean> = MutableLiveData(false)
     val loadingLiveData: MutableLiveData<Boolean> = MutableLiveData(false)
 
     fun init() {
-        viewModelScope.launch {
-            flow<Unit> {
-                delay(1000)
-                readyLiveData.value = true
-            }.onStart {
+        viewModelScope {
+            launchViewModel()
+                .onStart {
                 loadingLiveData.value = true
             }.onCompletion {
                 loadingLiveData.value = false
-            }.launchIn(this)
+            }.collect {
+                readyLiveData.value = it
+            }
         }
     }
 
+    private fun viewModelScope(scopeToRun: suspend () -> Any) : Job {
+        return viewModelScope.launch(Dispatchers.Main) {
+            scopeToRun()
+        }
+    }
+
+    private fun launchViewModel(): Flow<Boolean> {
+        return flow {
+            emit(false)
+            delay(5000)
+            emit(true)
+        }.flowOn(Dispatchers.IO)
+    }
 }
