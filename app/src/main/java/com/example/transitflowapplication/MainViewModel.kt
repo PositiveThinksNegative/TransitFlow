@@ -11,21 +11,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val readyLiveData: MutableLiveData<Boolean> = MutableLiveData(false)
     val loadingLiveData: MutableLiveData<Boolean> = MutableLiveData(false)
+    val searchLiveData: MutableLiveData<String> = MutableLiveData()
+    val refreshedTimebarLiveData: MutableLiveData<String> = MutableLiveData()
+    val searchFlow = SearchFlow()
 
     fun init() {
         viewModelScope {
             launchViewModel()
                 .onStart {
-                loadingLiveData.value = true
-            }.onCompletion {
-                loadingLiveData.value = false
-            }.collect {
-                readyLiveData.value = it
+                    loadingLiveData.value = true
+                }.onCompletion {
+                    loadingLiveData.value = false
+                }.collect {
+                    readyLiveData.value = it
+                }
+        }
+    }
+
+    fun launchTimebarRefresh() {
+        viewModelScope {
+            refreshTimebar().collect {
+                refreshedTimebarLiveData.value = it
             }
         }
     }
 
-    private fun viewModelScope(scopeToRun: suspend () -> Any) : Job {
+    suspend fun launchSearch(s: String) {
+        searchFlow.searchTerm = s
+        searchFlow.collect {
+            searchLiveData.value = it
+        }
+    }
+
+    private fun viewModelScope(scopeToRun: suspend () -> Any): Job {
         return viewModelScope.launch(Dispatchers.Main) {
             scopeToRun()
         }
@@ -34,8 +52,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun launchViewModel(): Flow<Boolean> {
         return flow {
             emit(false)
-            delay(5000)
+            delay(3000)
             emit(true)
         }.flowOn(Dispatchers.IO)
     }
+
+    private fun launchSearchFlow(searchTerm: String): Flow<String> {
+        return flow {
+            debouncedSearch(searchTerm).collect {
+                emit(it)
+            }
+        }
+    }
+
+    private fun debouncedSearch(searchTerm: String): Flow<String> {
+        return flow {
+            emit("Search result for: $searchTerm")
+        }
+    }
+
+    private fun refreshTimebar(): Flow<String> {
+        return flow {
+            while (true) {
+                emit("Refreshed")
+                delay(6000)
+            }
+        }
+    }
+
+    @FlowPreview
+    inner class SearchFlow : Flow<String> {
+        var searchTerm: String = ""
+
+        @InternalCoroutinesApi
+        override suspend fun collect(collector: FlowCollector<String>) {
+            collector.emit("Search result for: $searchTerm")
+        }
+
+    }
+
 }
