@@ -13,7 +13,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val loadingLiveData: MutableLiveData<Boolean> = MutableLiveData(false)
     val searchLiveData: MutableLiveData<String> = MutableLiveData()
     val refreshedTimebarLiveData: MutableLiveData<String> = MutableLiveData()
-    val searchFlow = SearchFlow()
+
+    private val searchFlow = SearchFlow()
+    private var searchJob: Job? = null
 
     fun init() {
         viewModelScope {
@@ -37,10 +39,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     suspend fun launchSearch(s: String) {
-        searchFlow.searchTerm = s
-        searchFlow.collect {
-            searchLiveData.value = it
+        searchJob = viewModelScope {
+            searchFlow.searchTerm = s
+            searchFlow.collect {
+                searchLiveData.value = it
+            }
         }
+
+    }
+
+    fun cancelSearch() {
+        searchJob?.cancel()
     }
 
     private fun viewModelScope(scopeToRun: suspend () -> Any): Job {
@@ -55,20 +64,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             delay(3000)
             emit(true)
         }.flowOn(Dispatchers.IO)
-    }
-
-    private fun launchSearchFlow(searchTerm: String): Flow<String> {
-        return flow {
-            debouncedSearch(searchTerm).collect {
-                emit(it)
-            }
-        }
-    }
-
-    private fun debouncedSearch(searchTerm: String): Flow<String> {
-        return flow {
-            emit("Search result for: $searchTerm")
-        }
     }
 
     private fun refreshTimebar(): Flow<String> {
